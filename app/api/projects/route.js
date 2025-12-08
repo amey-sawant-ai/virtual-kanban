@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "../../../lib/mongoose.js";
-import Project from "../../../models/Project.js";
+import Project from "../../../models/Project.models.js";
 
 // GET /api/projects  -> return all projects
 export async function GET() {
