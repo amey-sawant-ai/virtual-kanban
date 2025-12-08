@@ -1,27 +1,61 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "../../../lib/mongoose.js";
-import Project from "../../../models/Project.js";
+import { connectDB } from "@/lib/mongoose"; // adjust path as needed
+import Project from "@/models/project.model"; // adjust path as needed
 
-// GET /api/projects  -> return all projects
-export async function GET() {
-  await connectDB();
-  const projects = await Project.find().lean();
-  return NextResponse.json(projects);
-}
-
-// POST /api/projects  -> create a new project
 export async function POST(req) {
-  await connectDB();
-  const body = await req.json();
+  try {
+    await connectDB();
 
-  if (!body?.name) {
-    return NextResponse.json({ error: "name is required" }, { status: 400 });
+    const body = await req.json();
+
+    // Basic type-safe extraction + trimming
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    const description =
+      typeof body?.description === "string" ? body.description.trim() : "";
+
+    // Validation rules
+    if (!name) {
+      return NextResponse.json({ error: "name is required" }, { status: 400 });
+    }
+
+    if (name.length < 2) {
+      return NextResponse.json(
+        { error: "name must be at least 2 characters" },
+        { status: 400 }
+      );
+    }
+
+    if (name.length > 100) {
+      return NextResponse.json(
+        { error: "name must be 100 characters or fewer" },
+        { status: 400 }
+      );
+    }
+
+    if (description.length > 1000) {
+      return NextResponse.json(
+        { error: "description must be 1000 characters or fewer" },
+        { status: 400 }
+      );
+    }
+
+    // Optionally: more checks (allowed characters, profanity filter, etc.)
+    // Create project
+    const project = await Project.create({
+      name,
+      description: description || "",
+    });
+
+    return NextResponse.json(project, { status: 201 });
+  } catch (error) {
+    console.error("Error creating project:", error);
+
+    // Distinguish DB validation errors if you want more specific messages:
+    // if (error.name === 'ValidationError') { ... }
+
+    return NextResponse.json(
+      { error: "Failed to create project" },
+      { status: 500 }
+    );
   }
-
-  const project = await Project.create({
-    name: body.name,
-    description: body.description || "",
-  });
-
-  return NextResponse.json(project, { status: 201 });
 }
